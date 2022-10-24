@@ -3,6 +3,8 @@
 #include "game.h"
 #include <cassert>
 #include "Pad.h"
+#include <iostream>
+#include <fstream>
 
 namespace
 {
@@ -12,6 +14,9 @@ namespace
 	//チップの数
 	constexpr int kBgNumX = Game::kScreenWidth / kChipSize;
 	constexpr int kBgNumY = Game::kScreenHeight / kChipSize;
+
+	//入出力ファイル名
+	const char* const kFileName = "bin/map.bin";
 
 	//マップデータ
 	constexpr int kMapData[kBgNumY][kBgNumX] =
@@ -65,6 +70,33 @@ void Map::update()
 	int indexX = m_cursorNo % kBgNumX;
 	int indexY = m_cursorNo / kBgNumX;
 
+	if (Pad::isTrigger(PAD_INPUT_1))
+	{
+		//指定したマップチップの変更
+		if (m_mapData[m_cursorNo] < chipNum() - 1)
+		{
+			m_mapData[m_cursorNo]++;
+		}
+	}
+	if (Pad::isTrigger(PAD_INPUT_2))
+	{
+		//指定したマップチップの変更
+		if (m_mapData[m_cursorNo] > 0)
+		{
+			m_mapData[m_cursorNo]--;
+		}
+	}
+	if (Pad::isTrigger(PAD_INPUT_3))
+	{
+		//ファイルの出力
+		outputData();
+	}
+	if (Pad::isTrigger(PAD_INPUT_4))
+	{
+		//ファイルの出力
+		readData();
+	}
+
 	if (Pad::isTrigger(PAD_INPUT_UP))
 	{
 		if (indexY > 0)
@@ -88,7 +120,7 @@ void Map::update()
 	}
 	if (Pad::isTrigger(PAD_INPUT_RIGHT))
 	{
-		if (indexX < (kBgNumY - 1))
+		if (indexX < (kBgNumX - 1))
 		{
 			m_cursorNo++;
 		}
@@ -98,33 +130,12 @@ void Map::update()
 
 void Map::draw()
 {
-
-#if false
-	for (int  x = 0; x < kBgNumX; x++)	//横
-	{
-		for (int y = 0; y < kBgNumY; y++) //縦
-		{
-			const int chipNo = kMapData[y][x];
-
-			//エラー処理
-			assert(chipNo >= 0);
-			assert(chipNo < chipNum());
-
-			int graphX = (chipNo % chipNumX()) * kChipSize;
-			int graphY = (chipNo / chipNumX()) * kChipSize;
-
-			DrawRectGraph(x * kChipSize, y * kChipSize,graphX, graphY, kChipSize, kChipSize,m_handle, true, false);
-		}
-	}
-#else
-	// m_mapData
-
 	for (int x = 0; x < kBgNumX; x++)	//横
 	{
 		for (int y = 0; y < kBgNumY; y++) //縦
 		{
 		//  const int chipNo = kMapData[y][x];
-			const int chipNo = m_mapData[ y * kBgNumX + x];
+			const int chipNo = m_mapData[static_cast<std::vector<int, std::allocator<int>>::size_type>(y) * kBgNumX + x];
 			//エラー処理
 			assert(chipNo >= 0);
 			assert(chipNo < chipNum());
@@ -135,7 +146,7 @@ void Map::draw()
 			DrawRectGraph(x * kChipSize, y * kChipSize, graphX, graphY, kChipSize, kChipSize, m_handle, true, false);
 		}
 	}
-#endif
+
 	drawCursor();
 }
 
@@ -155,13 +166,38 @@ int Map::chipNumX()
 {
 	return(m_graphWidth / kChipSize);
 }
-
 int Map::chipNumY()
 {
 	return(m_graphHeight / kChipSize);
 }
-
 int Map::chipNum()
 {
 	return(chipNumX() * chipNumY());
+}
+
+void Map::outputData()
+{
+	std::ofstream ofs(kFileName, std::ios::binary);
+	//ファイルの書き込みに失敗
+	if (!ofs)
+	{
+		return;
+	}
+
+	ofs.write(reinterpret_cast<char*>(m_mapData.data()), sizeof(int) * kBgNumX * kBgNumY);
+
+	ofs.close();
+}
+void Map::readData()
+{
+	std::ifstream ifs(kFileName, std::ios::binary);
+	//ファイルの書き込みに失敗
+	if (!ifs)
+	{
+		return;
+	}
+
+	ifs.read(reinterpret_cast<char*>(m_mapData.data()), sizeof(int) * kBgNumX * kBgNumY);
+
+	ifs.close();
 }
