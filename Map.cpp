@@ -17,26 +17,6 @@ namespace
 
 	//入出力ファイル名
 	const char* const kFileName = "bin/map.bin";
-
-	//マップデータ
-	constexpr int kMapData[kBgNumY][kBgNumX] =
-	{
-		{0,1,9,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
-		{0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
-		{0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
-		{0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
-		{0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
-		{0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
-		{0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
-		{0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
-		{0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
-		{0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
-		{0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
-		{0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
-		{0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
-		{0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
-		{0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
-	};
 }
 
 Map::Map():	
@@ -44,7 +24,9 @@ Map::Map():
 	m_graphWidth (0),
 	m_graphHeight(0),
 	m_cursorNo   (0),
-	m_mapData	 (kBgNumX * kBgNumY, 0)
+	m_mapData	 (kBgNumX * kBgNumY, 0),
+	m_scrollX(0),
+	m_scrollY(0)
 {
 	
 }
@@ -88,15 +70,15 @@ void Map::update()
 	}
 	if (Pad::isTrigger(PAD_INPUT_3))
 	{
-		//ファイルの出力
+		//データを保存
 		outputData();
 	}
 	if (Pad::isTrigger(PAD_INPUT_4))
 	{
-		//ファイルの出力
+		//データを読み込み
 		readData();
 	}
-
+#if false
 	if (Pad::isTrigger(PAD_INPUT_UP))
 	{
 		if (indexY > 0)
@@ -126,16 +108,47 @@ void Map::update()
 		}
 		
 	}
+#else
+	if (Pad::isPress(PAD_INPUT_UP))
+	{
+		m_scrollY++;
+	}
+	if (Pad::isPress(PAD_INPUT_DOWN))
+	{
+		m_scrollY--;
+	}
+	if (Pad::isPress(PAD_INPUT_LEFT))
+	{
+		m_scrollX++;
+	}
+	if (Pad::isPress(PAD_INPUT_RIGHT))
+	{
+		m_scrollX--;
+
+	}
+#endif
 }
 
 void Map::draw()
 {
+	//m_scrollX < 0 右にずれている
+	//m_scrollX > 0 左にずれている
+	//m_scrollY < 0 下にずれている
+	//m_scrollY > 0 上にずれている
+	int indexX = 0;
+	int indexY = 0;
+
+	indexX = -(m_scrollX / kChipSize);
+	while (indexX < 0) indexX += kBgNumX;
+	indexY = -(m_scrollY / kChipSize);
+	while (indexY < 0) indexX += kBgNumY;
+
 	for (int x = 0; x < kBgNumX; x++)	//横
 	{
 		for (int y = 0; y < kBgNumY; y++) //縦
 		{
 		//  const int chipNo = kMapData[y][x];
-			const int chipNo = m_mapData[static_cast<std::vector<int, std::allocator<int>>::size_type>(y) * kBgNumX + x];
+			const int chipNo = m_mapData[y * kBgNumX + x];
 			//エラー処理
 			assert(chipNo >= 0);
 			assert(chipNo < chipNum());
@@ -143,7 +156,7 @@ void Map::draw()
 			int graphX = (chipNo % chipNumX()) * kChipSize;
 			int graphY = (chipNo / chipNumX()) * kChipSize;
 
-			DrawRectGraph(x * kChipSize, y * kChipSize, graphX, graphY, kChipSize, kChipSize, m_handle, true, false);
+			DrawRectGraph(x * kChipSize , y * kChipSize, graphX, graphY, kChipSize, kChipSize, m_handle, true, false);
 		}
 	}
 
