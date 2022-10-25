@@ -8,6 +8,7 @@
 
 namespace
 {
+	constexpr float kMapSpeed = 100.0f;
 	//マップチップ1つのサイズ
 	constexpr int kChipSize = 32;
 
@@ -72,11 +73,8 @@ void Map::update()
 	{
 		//データを保存
 		outputData();
-	}
-	if (Pad::isTrigger(PAD_INPUT_4))
-	{
 		//データを読み込み
-		readData();
+		//readData();
 	}
 #if false
 	if (Pad::isTrigger(PAD_INPUT_UP))
@@ -111,20 +109,35 @@ void Map::update()
 #else
 	if (Pad::isPress(PAD_INPUT_UP))
 	{
-		m_scrollY++;
+		m_scrollY += kMapSpeed;
+		if (m_scrollY > Game::kScreenHeight)
+		{
+			m_scrollY -= Game::kScreenHeight;
+		}
 	}
 	if (Pad::isPress(PAD_INPUT_DOWN))
 	{
-		m_scrollY--;
+		m_scrollY -= kMapSpeed;
+		if (m_scrollY < -Game::kScreenHeight)
+		{
+			m_scrollY += Game::kScreenHeight;
+		}
 	}
 	if (Pad::isPress(PAD_INPUT_LEFT))
 	{
-		m_scrollX++;
+		m_scrollX += kMapSpeed;
+		if (m_scrollX > Game::kScreenWidth)
+		{
+			m_scrollX -= Game::kScreenWidth;
+		}
 	}
 	if (Pad::isPress(PAD_INPUT_RIGHT))
 	{
-		m_scrollX--;
-
+		m_scrollX -= kMapSpeed;
+		if (m_scrollX < -Game::kScreenWidth)
+		{
+			m_scrollX += Game::kScreenWidth;
+		}
 	}
 #endif
 }
@@ -135,19 +148,40 @@ void Map::draw()
 	//m_scrollX > 0 左にずれている
 	//m_scrollY < 0 下にずれている
 	//m_scrollY > 0 上にずれている
-	int indexX = 0;
-	int indexY = 0;
+#if false
+	for (int  x = -1; x <= 1; x++)
+	{
+		for (int y = -1; y <= 1; y++)
+		{
+			int offsetX = x * Game::kScreenWidth + m_scrollX;
+			int offsetY = y * Game::kScreenHeight + m_scrollY;
+			drawMap(offsetX,offsetY);
+		}
+	}
+#else
+	int offsetX = m_scrollX;
+	if (offsetX > 0) offsetX -= Game::kScreenWidth;
+	int offsetY = m_scrollY;
+	if (offsetY > 0) offsetY -= Game::kScreenHeight;
 
-	indexX = -(m_scrollX / kChipSize);
-	while (indexX < 0) indexX += kBgNumX;
-	indexY = -(m_scrollY / kChipSize);
-	while (indexY < 0) indexX += kBgNumY;
+	for (int x = -1; x <= 1; x++)
+	{
+		for (int y = -1; y <= 1; y++)
+		{
+			drawMap(offsetX + x * Game::kScreenWidth, offsetY + y * Game::kScreenHeight);
+		}
+	}
 
+#endif
+}
+
+void Map::drawMap(int offsetX, int offsetY)
+{
 	for (int x = 0; x < kBgNumX; x++)	//横
 	{
 		for (int y = 0; y < kBgNumY; y++) //縦
 		{
-		//  const int chipNo = kMapData[y][x];
+			//  const int chipNo = kMapData[y][x];
 			const int chipNo = m_mapData[y * kBgNumX + x];
 			//エラー処理
 			assert(chipNo >= 0);
@@ -156,11 +190,9 @@ void Map::draw()
 			int graphX = (chipNo % chipNumX()) * kChipSize;
 			int graphY = (chipNo / chipNumX()) * kChipSize;
 
-			DrawRectGraph(x * kChipSize , y * kChipSize, graphX, graphY, kChipSize, kChipSize, m_handle, true, false);
+			DrawRectGraph(x * kChipSize + offsetX, y * kChipSize + offsetY, graphX, graphY, kChipSize, kChipSize, m_handle, true, false);
 		}
 	}
-
-	drawCursor();
 }
 
 //マップチップ編集用カーソルの表示
